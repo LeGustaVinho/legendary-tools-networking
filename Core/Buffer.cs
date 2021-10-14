@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.IO;
+using UnityEngine;
 
 namespace LegendaryTools.Networking
 {
@@ -102,6 +103,13 @@ namespace LegendaryTools.Networking
             }
             b.counter = markAsUsed ? 1 : 0;
             return b;
+        }
+        
+        public static Buffer CreatePackage(Packet type, out BinaryWriter packageWriter)
+        {
+            Buffer buffer = Create();
+            packageWriter = buffer.BeginPacket(type);
+            return buffer;
         }
 
         /// <summary>
@@ -385,10 +393,7 @@ namespace LegendaryTools.Networking
         /// </summary>
         public BinaryWriter BeginPacket(Packet packet)
         {
-            BinaryWriter writer = BeginWriting(false);
-            writer.Write(0);
-            writer.Write((byte) packet);
-            return writer;
+            return BeginPacket((byte) packet);
         }
 
         /// <summary>
@@ -449,5 +454,700 @@ namespace LegendaryTools.Networking
             }
             return size;
         }
+
+        #region Writer
+        public void Write(long value)
+        {
+            if (isWriting)
+            {
+                binaryWriter.Write(value);
+            }
+        }
+        
+        public void Write(long[] values)
+        {
+            if (isWriting)
+            {
+                binaryWriter.Write(values.Length);
+
+                foreach (long value in values)
+                {
+                    binaryWriter.Write(value);
+                }
+            }
+        }
+        
+        public void Write(ulong value)
+        {
+            if (isWriting)
+            {
+                binaryWriter.Write(value);
+            }
+        }
+        
+        public void Write(ulong[] values)
+        {
+            if (isWriting)
+            {
+                binaryWriter.Write(values.Length);
+
+                foreach (ulong value in values)
+                {
+                    binaryWriter.Write(value);
+                }
+            }
+        }
+        
+        public void Write(int value)
+        {
+            if (isWriting)
+            {
+                binaryWriter.Write(value);
+            }
+        }
+        
+        public void Write(int[] values)
+        {
+            if (isWriting)
+            {
+                binaryWriter.Write(values.Length);
+
+                foreach (int value in values)
+                {
+                    binaryWriter.Write(value);
+                }
+            }
+        }
+        
+        public void Write(uint value)
+        {
+            if (isWriting)
+            {
+                binaryWriter.Write(value);
+            }
+        }
+        
+        public void Write(uint[] values)
+        {
+            if (isWriting)
+            {
+                binaryWriter.Write(values.Length);
+
+                foreach (uint value in values)
+                {
+                    binaryWriter.Write(value);
+                }
+            }
+        }
+        
+        public void Write(short value)
+        {
+            if (isWriting)
+            {
+                binaryWriter.Write(value);
+            }
+        }
+        
+        public void Write(short[] values)
+        {
+            if (isWriting)
+            {
+                binaryWriter.Write(values.Length);
+
+                foreach (short value in values)
+                {
+                    binaryWriter.Write(value);
+                }
+            }
+        }
+        
+        public void Write(ushort value)
+        {
+            if (isWriting)
+            {
+                binaryWriter.Write(value);
+            }
+        }
+        
+        public void Write(ushort[] values)
+        {
+            if (isWriting)
+            {
+                binaryWriter.Write(values.Length);
+
+                foreach (ushort value in values)
+                {
+                    binaryWriter.Write(value);
+                }
+            }
+        }
+        
+        public void Write(bool value)
+        {
+            if (isWriting)
+            {
+                binaryWriter.Write(value);
+            }
+        }
+        
+        public void Write(byte value)
+        {
+            if (isWriting)
+            {
+                binaryWriter.Write(value);
+            }
+        }
+        
+        public void Write(byte[] value)
+        {
+            if (isWriting)
+            {
+                binaryWriter.Write(value);
+            }
+        }
+        
+        public void Write(sbyte value)
+        {
+            if (isWriting)
+            {
+                binaryWriter.Write(value);
+            }
+        }
+        
+        public void Write(sbyte[] values)
+        {
+            if (isWriting)
+            {
+                binaryWriter.Write(values.Length);
+
+                foreach (sbyte value in values)
+                {
+                    binaryWriter.Write(value);
+                }
+            }
+        }
+        
+        public void Write(string value)
+        {
+            if (isWriting)
+            {
+                binaryWriter.Write(value);
+            }
+        }
+        
+        public void Write(string[] values)
+        {
+            if (isWriting)
+            {
+                binaryWriter.Write(values.Length);
+
+                foreach (string value in values)
+                {
+                    binaryWriter.Write(value);
+                }
+            }
+        }
+        
+        public void Write(char value)
+        {
+            if (isWriting)
+            {
+                binaryWriter.Write(value);
+            }
+        }
+        
+        public void Write(char[] values)
+        {
+            if (isWriting)
+            {
+                binaryWriter.Write(values.Length);
+
+                foreach (char value in values)
+                {
+                    binaryWriter.Write(value);
+                }
+            }
+        }
+        
+        public void Write(float value)
+        {
+            if (isWriting)
+            {
+                binaryWriter.Write(value);
+            }
+        }
+        
+        public void Write(float[] values)
+        {
+            if (isWriting)
+            {
+                binaryWriter.Write(values.Length);
+
+                foreach (float value in values)
+                {
+                    binaryWriter.Write(value);
+                }
+            }
+        }
+        
+        public void Write(double value)
+        {
+            if (isWriting)
+            {
+                binaryWriter.Write(value);
+            }
+        }
+        
+        public void Write(double[] values)
+        {
+            if (isWriting)
+            {
+                binaryWriter.Write(values.Length);
+
+                foreach (double value in values)
+                {
+                    binaryWriter.Write(value);
+                }
+            }
+        }
+        
+        public void Write(Vector2 value)
+        {
+            if (isWriting)
+            {
+                binaryWriter.Write(value.x);
+                binaryWriter.Write(value.y);
+            }
+        }
+        
+        public void Write(Vector2[] values)
+        {
+            if (isWriting)
+            {
+                binaryWriter.Write(values.Length);
+
+                foreach (Vector2 value in values)
+                {
+                    Write(value);
+                }
+            }
+        }
+        
+        public void Write(Vector3 value)
+        {
+            if (isWriting)
+            {
+                binaryWriter.Write(value.x);
+                binaryWriter.Write(value.y);
+                binaryWriter.Write(value.z);
+            }
+        }
+        
+        public void Write(Vector3[] values)
+        {
+            if (isWriting)
+            {
+                binaryWriter.Write(values.Length);
+
+                foreach (Vector3 value in values)
+                {
+                    Write(value);
+                }
+            }
+        }
+        
+        public void Write(Quaternion value)
+        {
+            if (isWriting)
+            {
+                binaryWriter.Write(value.x);
+                binaryWriter.Write(value.y);
+                binaryWriter.Write(value.z);
+                binaryWriter.Write(value.w);
+            }
+        }
+        
+        public void Write(Quaternion[] values)
+        {
+            if (isWriting)
+            {
+                binaryWriter.Write(values.Length);
+
+                foreach (Quaternion value in values)
+                {
+                    Write(value);
+                }
+            }
+        }
+        
+        public void Write(Color value)
+        {
+            if (isWriting)
+            {
+                binaryWriter.Write(value.r);
+                binaryWriter.Write(value.g);
+                binaryWriter.Write(value.b);
+                binaryWriter.Write(value.a);
+            }
+        }
+        
+        public void Write(Color[] values)
+        {
+            if (isWriting)
+            {
+                binaryWriter.Write(values.Length);
+
+                foreach (Color value in values)
+                {
+                    Write(value);
+                }
+            }
+        }
+        
+        public void Write(Color32 value)
+        {
+            if (isWriting)
+            {
+                binaryWriter.Write(value.r);
+                binaryWriter.Write(value.g);
+                binaryWriter.Write(value.b);
+                binaryWriter.Write(value.a);
+            }
+        }
+        
+        public void Write(Color32[] values)
+        {
+            if (isWriting)
+            {
+                binaryWriter.Write(values.Length);
+
+                foreach (Color value in values)
+                {
+                    Write(value);
+                }
+            }
+        }
+        
+        public void Write(Rect value)
+        {
+            if (isWriting)
+            {
+                binaryWriter.Write(value.x);
+                binaryWriter.Write(value.y);
+                binaryWriter.Write(value.width);
+                binaryWriter.Write(value.height);
+            }
+        }
+        
+        public void Write(Rect[] values)
+        {
+            if (isWriting)
+            {
+                binaryWriter.Write(values.Length);
+
+                foreach (Rect value in values)
+                {
+                    Write(value);
+                }
+            }
+        }
+        
+        #endregion
+
+        #region Reader
+
+        public long ReadInt64()
+        {
+            return binaryReader.ReadInt64();
+        }
+        
+        public long[] ReadInt64Array()
+        {
+            int length = binaryReader.ReadInt32();
+            long[] result = new long[length];
+
+            for (int i = 0; i < length; i++)
+            {
+                result[i] = binaryReader.ReadInt64();
+            }
+            return result;
+        }
+        
+        public ulong ReadUInt64()
+        {
+            return binaryReader.ReadUInt64();
+        }
+        
+        public ulong[] ReadUInt64Array()
+        {
+            int length = binaryReader.ReadInt32();
+            ulong[] result = new ulong[length];
+
+            for (int i = 0; i < length; i++)
+            {
+                result[i] = binaryReader.ReadUInt64();
+            }
+            return result;
+        }
+        
+        public int ReadInt32()
+        {
+            return binaryReader.ReadInt32();
+        }
+        
+        public int[] ReadInt32Array()
+        {
+            int length = binaryReader.ReadInt32();
+            int[] result = new int[length];
+
+            for (int i = 0; i < length; i++)
+            {
+                result[i] = binaryReader.ReadInt32();
+            }
+            return result;
+        }
+        
+        public uint ReadUInt32(uint value)
+        {
+            return binaryReader.ReadUInt32();
+        }
+        
+        public uint[] ReadUInt32Array()
+        {
+            int length = binaryReader.ReadInt32();
+            uint[] result = new uint[length];
+
+            for (int i = 0; i < length; i++)
+            {
+                result[i] = binaryReader.ReadUInt32();
+            }
+            return result;
+        }
+        
+        public short ReadInt16()
+        {
+            return binaryReader.ReadInt16();
+        }
+        
+        public short[] ReadInt16Array()
+        {
+            int length = binaryReader.ReadInt32();
+            short[] result = new short[length];
+
+            for (int i = 0; i < length; i++)
+            {
+                result[i] = binaryReader.ReadInt16();
+            }
+            return result;
+        }
+        
+        public ushort ReadUInt16()
+        {
+            return binaryReader.ReadUInt16();
+        }
+        
+        public bool ReadBoolean()
+        {
+            return binaryReader.ReadBoolean();
+        }
+        
+        public byte ReadByte()
+        {
+            return binaryReader.ReadByte();
+        }
+        
+        public byte[] ReadBytes(int count)
+        {
+            return binaryReader.ReadBytes(count);
+        }
+        
+        public sbyte ReadSByte()
+        {
+            return binaryReader.ReadSByte();
+        }
+        
+        public sbyte[] ReadSBytes()
+        {
+            int length = binaryReader.ReadInt32();
+            sbyte[] result = new sbyte[length];
+
+            for (int i = 0; i < length; i++)
+            {
+                result[i] = binaryReader.ReadSByte();
+            }
+            return result;
+        }
+        
+        public string ReadString()
+        {
+            return binaryReader.ReadString();
+        }
+        
+        public string[] ReadStrings()
+        {
+            int length = binaryReader.ReadInt32();
+            string[] result = new string[length];
+
+            for (int i = 0; i < length; i++)
+            {
+                result[i] = binaryReader.ReadString();
+            }
+            return result;
+        }
+        
+        public char ReadChar()
+        {
+            return binaryReader.ReadChar();
+        }
+        
+        public char[] ReadChars(int count)
+        {
+            int length = binaryReader.ReadInt32();
+            char[] result = new char[length];
+
+            for (int i = 0; i < length; i++)
+            {
+                result[i] = binaryReader.ReadChar();
+            }
+            return result;
+        }
+        
+        public float ReadSingle()
+        {
+            return binaryReader.ReadSingle();
+        }
+        
+        public float[] ReadSingles()
+        {
+            int length = binaryReader.ReadInt32();
+            float[] result = new float[length];
+
+            for (int i = 0; i < length; i++)
+            {
+                result[i] = binaryReader.ReadSingle();
+            }
+            return result;
+        }
+        
+        public double ReadDouble()
+        {
+            return binaryReader.ReadDouble();
+        }
+        
+        public double[] ReadDoubles()
+        {
+            int length = binaryReader.ReadInt32();
+            double[] result = new double[length];
+
+            for (int i = 0; i < length; i++)
+            {
+                result[i] = binaryReader.ReadDouble();
+            }
+            return result;
+        }
+        
+        public Vector2 ReadVector2()
+        {
+            return new Vector2(binaryReader.ReadSingle(), binaryReader.ReadSingle());
+        }
+        
+        public Vector2[] ReadVector2Array()
+        {
+            int length = binaryReader.ReadInt32();
+            Vector2[] result = new Vector2[length];
+
+            for (int i = 0; i < length; i++)
+            {
+                result[i] = ReadVector2();
+            }
+            return result;
+        }
+        
+        public Vector3 ReadVector3()
+        {
+            return new Vector3(binaryReader.ReadSingle(), binaryReader.ReadSingle(), binaryReader.ReadSingle());
+        }
+        
+        public Vector3[] ReadVector3Array()
+        {
+            int length = binaryReader.ReadInt32();
+            Vector3[] result = new Vector3[length];
+
+            for (int i = 0; i < length; i++)
+            {
+                result[i] = ReadVector3();
+            }
+            return result;
+        }
+        
+        public Quaternion ReadQuaternion()
+        {
+            return new Quaternion(binaryReader.ReadSingle(), binaryReader.ReadSingle(), binaryReader.ReadSingle(), binaryReader.ReadSingle());
+        }
+        
+        public Quaternion[] ReadQuaternions()
+        {
+            int length = binaryReader.ReadInt32();
+            Quaternion[] result = new Quaternion[length];
+
+            for (int i = 0; i < length; i++)
+            {
+                result[i] = ReadQuaternion();
+            }
+            return result;
+        }
+        
+        public Color ReadColor()
+        {
+            return new Color(binaryReader.ReadSingle(), binaryReader.ReadSingle(), binaryReader.ReadSingle(), binaryReader.ReadSingle());
+        }
+        
+        public Color[] ReadColors()
+        {
+            int length = binaryReader.ReadInt32();
+            Color[] result = new Color[length];
+
+            for (int i = 0; i < length; i++)
+            {
+                result[i] = ReadColor();
+            }
+            return result;
+        }
+        
+        public Color32 ReadColor32()
+        {
+            return new Color32(binaryReader.ReadByte(), binaryReader.ReadByte(), binaryReader.ReadByte(), binaryReader.ReadByte());
+        }
+        
+        public Color32[] ReadColor32Array()
+        {
+            int length = binaryReader.ReadInt32();
+            Color32[] result = new Color32[length];
+
+            for (int i = 0; i < length; i++)
+            {
+                result[i] = ReadColor32();
+            }
+            return result;
+        }
+        
+        public Rect ReadRect()
+        {
+            return new Rect(binaryReader.ReadSingle(), binaryReader.ReadSingle(), binaryReader.ReadSingle(), binaryReader.ReadSingle());
+        }
+        
+        public Rect[] ReadRects()
+        {
+            int length = binaryReader.ReadInt32();
+            Rect[] result = new Rect[length];
+
+            for (int i = 0; i < length; i++)
+            {
+                result[i] = ReadRect();
+            }
+            return result;
+        }
+
+        #endregion
     }
 }

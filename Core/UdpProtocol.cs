@@ -107,10 +107,12 @@ namespace LegendaryTools.Networking
             Stop();
 
             Port = port;
-            Socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+            Socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp)
+            {
+                MulticastLoopback = true
+            };
 
             // Web player doesn't seem to support broadcasts
-            Socket.MulticastLoopback = true;
             multicast = useMulticasting;
 
             try
@@ -278,7 +280,6 @@ namespace LegendaryTools.Networking
 
                 lock (lockObj)
                 {
-#if MULTI_THREADED
                     try
                     {
                         if (ReceivePacket(out mReceiveBuffer, out mReceiveSource))
@@ -290,10 +291,6 @@ namespace LegendaryTools.Networking
                     {
                         Debug.LogException(ex);
                     }
-#else
-                    if(ReceivePacket(out mReceiveBuffer, out mReceiveSource))
-                        received = true;
-#endif
                 }
 
 #if MULTI_THREADED
@@ -432,11 +429,6 @@ namespace LegendaryTools.Networking
             }
         }
 
-        public void Send(INetworkSerialization data, IPEndPoint ip)
-        {
-            Send(data.Serialize(), ip);
-        }
-        
         /// <summary>
         /// Send completion callback. Recycles the datagram.
         /// </summary>

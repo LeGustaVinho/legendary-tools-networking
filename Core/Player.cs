@@ -1,3 +1,5 @@
+using System.Net;
+
 namespace LegendaryTools.Networking
 {
     /// <summary>
@@ -8,58 +10,25 @@ namespace LegendaryTools.Networking
         /// <summary>
         /// Protocol version.
         /// </summary>
-        public const int version = 12;
-
-        protected static int mPlayerCounter;
-        protected static object mLock = new int();
-
-        /// <summary>
-        /// Player's custom data. Set via TNManger.playerData.
-        /// </summary>
-        public object data = null;
+        public const int VERSION = 1;
 
         /// <summary>
         /// All players have a unique identifier given by the server.
         /// </summary>
-        public int id = 1;
+        public int Id => TcpProtocol.Id;
 
         /// <summary>
         /// All players have a name that they chose for themselves.
         /// </summary>
-        public string name = "Guest";
+        public string Name = "Guest";
 
-#if !STANDALONE
-        //static DataNode mDummy = new DataNode("Version", version);
-
-        /// <summary>
-        /// Player's data converted to DataNode form. Always returns a valid DataNode.
-        /// It's a convenience property, intended for read-only purposes.
-        /// </summary>
-
-        //public DataNode dataNode
-        //{
-        //	get
-        //	{
-        //		DataNode node = data as DataNode;
-        //		return node ?? mDummy;
-        //	}
-        //}
-#endif
-        public Player()
+        public TcpProtocol TcpProtocol { get; private set; }
+        public IPEndPoint UdpAddress { get; private set; }
+        
+        public Player(TcpProtocol tcpProtocol, IPEndPoint udpAddress)
         {
-        }
-
-        public Player(string playerName)
-        {
-            name = playerName;
-        }
-
-        /// <summary>
-        /// Call after shutting down the server.
-        /// </summary>
-        public static void ResetPlayerCounter()
-        {
-            mPlayerCounter = 0;
+            this.TcpProtocol = tcpProtocol;
+            this.UdpAddress = udpAddress;
         }
     }
 }

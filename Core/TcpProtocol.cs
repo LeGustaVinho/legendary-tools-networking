@@ -1,5 +1,4 @@
 #define DEBUG
-#define MULTI_THREADED
 
 using System;
 using System.Collections.Generic;
@@ -15,6 +14,7 @@ namespace LegendaryTools.Networking
     /// Common network communication-based logic: sending and receiving of data via TCP.
     /// </summary>
     public delegate void OnTcpPacketReceivedEventHandler(Buffer buffer, IPEndPoint source);
+    public delegate void OnTcpClientChangeEventHandler(TcpProtocol tcpProtocol);
 
     public class TcpProtocol
     {
@@ -24,11 +24,10 @@ namespace LegendaryTools.Networking
         /// Protocol version.
         /// </summary>
         public const int VERSION = 1;
-
         public const int BUFFER_MAX_SIZE = 8192;
 
-        protected static object clientLockObj = new int();
-        protected static int connectionCounter;
+        protected object clientLockObj = new int();
+        protected int connectionCounter;
 
         /// <summary>
         /// All players have a unique identifier given by the server.
@@ -69,11 +68,11 @@ namespace LegendaryTools.Networking
 #endif
 
         // Incoming and outgoing queues
-        private Queue<Buffer> inQueue = new Queue<Buffer>();
-        private Queue<Buffer> outQueue = new Queue<Buffer>();
+        private readonly Queue<Buffer> inQueue = new Queue<Buffer>();
+        private readonly Queue<Buffer> outQueue = new Queue<Buffer>();
 
         // Buffer used for receiving incoming data
-        private byte[] temp = new byte[BUFFER_MAX_SIZE];
+        private readonly byte[] temp = new byte[BUFFER_MAX_SIZE];
 
         // Current incoming buffer
         private Buffer receiveBuffer;
@@ -82,13 +81,10 @@ namespace LegendaryTools.Networking
         private Socket socket;
         private bool noDelay;
         private IPEndPoint fallback;
-        private ListLessGarb<Socket> connectingList = new ListLessGarb<Socket>();
+        private readonly ListLessGarb<Socket> connectingList = new ListLessGarb<Socket>();
         private Thread clientThread;
 
-        // Static as it's temporary
-        private static Buffer buffer;
-
-        public static event OnTcpPacketReceivedEventHandler OnClientPacketReceived;
+        public event OnTcpPacketReceivedEventHandler OnClientPacketReceived;
 
         /// <summary>
         /// Whether the connection is currently active.
@@ -126,30 +122,34 @@ namespace LegendaryTools.Networking
         /// Connected target's address.
         /// </summary>
 
-        public string IpAddress => EndPoint != null ? EndPoint.ToString() : "0.0.0.0:0";
+        public string Address => EndPoint != null ? EndPoint.ToString() : "0.0.0.0:0";
+        public string Ip => EndPoint != null ? EndPoint.Address.ToString() : "0.0.0.0";
+        public int Port => EndPoint?.Port ?? 0;
 
         #endregion
 
         #region TcpListener Vars
 
-        protected static object listenerLockObj = new int();
+        protected readonly object listenerLockObj = new int();
 
         /// <summary>
         /// List of players in a consecutive order for each looping.
         /// </summary>
-        private ListLessGarb<TcpProtocol> clients = new ListLessGarb<TcpProtocol>();
+        private readonly ListLessGarb<TcpProtocol> clients = new ListLessGarb<TcpProtocol>();
 
         /// <summary>
         /// Dictionary list of players for easy access by ID.
         /// </summary>
-        private Dictionary<int, TcpProtocol> clientsDictionary = new Dictionary<int, TcpProtocol>();
+        private readonly Dictionary<int, TcpProtocol> clientsDictionary = new Dictionary<int, TcpProtocol>();
 
         private TcpListener listener;
         private Thread listenerThread;
         private int listenerPort;
         private long time;
 
-        public static event OnTcpPacketReceivedEventHandler OnListenerPacketReceived;
+        public event OnTcpPacketReceivedEventHandler OnListenerPacketReceived;
+        public event OnTcpClientChangeEventHandler OnTcpClientConnect;
+        public event OnTcpClientChangeEventHandler OnTcpClientDisconnect;
 
         /// <summary>
         /// Whether the server is currently actively serving players.
@@ -167,7 +167,7 @@ namespace LegendaryTools.Networking
         /// Port used for listening to incoming connections. Set when the server is started.
         /// </summary>
 
-        public int Port => listener != null ? listenerPort : 0;
+        public int ListenerPort => listener != null ? listenerPort : 0;
 
         #endregion
 
@@ -176,15 +176,15 @@ namespace LegendaryTools.Networking
         /// <summary>
         /// Try to establish a connection with the specified address.
         /// </summary>
-        public void Connect(IPEndPoint externalIP)
+        public bool Connect(IPEndPoint externalIP)
         {
-            Connect(externalIP, null);
+            return Connect(externalIP, null);
         }
 
         /// <summary>
         /// Try to establish a connection with the specified remote destination.
         /// </summary>
-        public void Connect(IPEndPoint externalIP, IPEndPoint internalIP)
+        public bool Connect(IPEndPoint externalIP, IPEndPoint internalIP)
         {
             Disconnect();
 
@@ -214,7 +214,7 @@ namespace LegendaryTools.Networking
 #endif
             }
 
-            ConnectToTcpEndPoint();
+            return ConnectToTcpEndPoint();
         }
 
         /// <summary>
@@ -366,11 +366,15 @@ namespace LegendaryTools.Networking
                     Debug.Log(
                         "[Client][TcpProtocol:OnConnectResult() -> Connetion successful. Sending request to verify ID.");
 #endif
-                    // Request a connection ID
+                    
                     Status = ConnectionStatus.Verifying;
-                    BinaryWriter writer = BeginSend(Packet.RequestID);
-                    writer.Write(VERSION);
-                    EndSend();
+                    
+                    //Request a connection ID
+                    Buffer requestIdBuffer = Buffer.CreatePackage(Packet.RequestID, out BinaryWriter packageWriter);
+                    packageWriter.Write(VERSION);
+                    requestIdBuffer.EndPacket();
+                    SendTcpPacket(requestIdBuffer);
+                    
                     StartReceiving();
                 }
                 else if (!ConnectToFallback())
@@ -418,10 +422,7 @@ namespace LegendaryTools.Networking
                     {
                         Socket sock = connectingList[--i];
                         connectingList.RemoveAt(i);
-                        if (sock != null)
-                        {
-                            sock.Close();
-                        }
+                        sock?.Close();
                     }
                 }
 
@@ -456,24 +457,23 @@ namespace LegendaryTools.Networking
         /// </summary>
         public void Close(bool notify)
         {
-            Status = ConnectionStatus.NotConnected;
-
-            //recycle buffer
-            if (receiveBuffer != null)
-            {
-                receiveBuffer.Recycle();
-                receiveBuffer = null;
-            }
-
-            // Stop the worker thread
-            if (clientThread != null)
-            {
-                clientThread.Abort();
-                clientThread = null;
-            }
-
             if (socket != null)
             {
+                if (notify)
+                {
+#if DEBUG
+                    Debug.Log("[Client][TcpProtocol:Close(" + notify + ") -> Sending disconnect message.");
+#endif
+
+                    Buffer buffer = Buffer.Create();
+                    buffer.BeginPacket(Packet.Disconnect);
+                    buffer.EndTcpPacketWithOffset(4);
+                    lock (inQueue)
+                    {
+                        inQueue.Enqueue(buffer);
+                    }
+                }
+                
                 try
                 {
                     if (socket.Connected)
@@ -492,56 +492,38 @@ namespace LegendaryTools.Networking
                     Debug.LogException(ex);
                 }
                 socket = null;
+            }
+            
+            Status = ConnectionStatus.NotConnected;
 
-                if (notify)
-                {
-#if DEBUG
-                    Debug.Log("[Client][TcpProtocol:Close(" + notify + ") -> Sending disconnect message.");
-#endif
+            //recycle buffer
+            if (receiveBuffer != null)
+            {
+                receiveBuffer.Recycle();
+                receiveBuffer = null;
+            }
 
-                    Buffer buffer = Buffer.Create();
-                    buffer.BeginPacket(Packet.Disconnect);
-                    buffer.EndTcpPacketWithOffset(4);
-                    lock (inQueue)
-                    {
-                        inQueue.Enqueue(buffer);
-                    }
-                }
+            // Stop the worker thread
+            if (clientThread != null)
+            {
+                clientThread.Abort();
+                clientThread = null;
             }
         }
 
         /// <summary>
         /// Release the buffers.
         /// </summary>
-        public void Release()
+        public void Release(bool notify = false)
         {
 #if DEBUG
             Debug.Log("[Client][TcpProtocol:Release() -> Released.");
 #endif
-            Close(false);
+            Close(notify);
             Buffer.Recycle(inQueue);
             Buffer.Recycle(outQueue);
         }
-
-        /// <summary>
-        /// Begin sending a new packet to the server.
-        /// </summary>
-        public BinaryWriter BeginSend(Packet type)
-        {
-            buffer = Buffer.Create(false);
-            return buffer.BeginPacket(type);
-        }
-
-        /// <summary>
-        /// Send the outgoing buffer.
-        /// </summary>
-        public void EndSend()
-        {
-            buffer.EndPacket();
-            SendTcpPacket(buffer);
-            buffer = null;
-        }
-
+        
         /// <summary>
         /// Send the specified packet. Marks the buffer as used.
         /// </summary>
@@ -879,7 +861,6 @@ namespace LegendaryTools.Networking
 #if DEBUG
                         Debug.Log("[Client][TcpProtocol:ProcessBuffer(" + bytes + ") -> ???");
 #endif
-                        // HTTP Get: 542393671
                         Close(true);
                         return false;
                     }
@@ -988,11 +969,12 @@ namespace LegendaryTools.Networking
 
                     Status = ConnectionStatus.Connected;
 
-                    BinaryWriter writer = BeginSend(Packet.ResponseID);
-                    writer.Write(VERSION);
-                    writer.Write(Id);
-                    writer.Write(DateTime.UtcNow.Ticks / 10000);
-                    EndSend();
+                    Buffer responseIdBuffer = Buffer.CreatePackage(Packet.ResponseID, out BinaryWriter packageWriter);
+                    packageWriter.Write(VERSION);
+                    packageWriter.Write(Id);
+                    packageWriter.Write(DateTime.UtcNow.Ticks / 10000);
+                    responseIdBuffer.EndPacket();
+                    SendTcpPacket(responseIdBuffer);
 #if DEBUG
                     Debug.Log("[Client][TcpProtocol:VerifyRequestID()] -> Protocol marked as connected in server. !");
 #endif
@@ -1000,9 +982,10 @@ namespace LegendaryTools.Networking
                 }
                 else
                 {
-                    BinaryWriter writer = BeginSend(Packet.ResponseID);
-                    writer.Write(0);
-                    EndSend();
+                    Buffer responseIdBuffer = Buffer.CreatePackage(Packet.ResponseID, out BinaryWriter packageWriter);
+                    packageWriter.Write(0);
+                    responseIdBuffer.EndPacket();
+                    SendTcpPacket(responseIdBuffer);
 #if DEBUG
                     Debug.LogWarning("[Client][TcpProtocol:VerifyRequestID()] -> Incorrect version.");
 #endif
@@ -1040,6 +1023,7 @@ namespace LegendaryTools.Networking
 
                     return true;
                 }
+                
                 Id = 0;
                 Debug.LogError(
                     "[Client][TcpProtocol:VerifyResponseID() -> Version mismatch! Server is running a different protocol version!");
@@ -1059,7 +1043,7 @@ namespace LegendaryTools.Networking
         /// <summary>
         /// Call after shutting down the listener.
         /// </summary>
-        public static void ResetConnectionsCounter()
+        public void ResetConnectionsCounter()
         {
 #if DEBUG
             Debug.Log("[Client][TcpProtocol:ResetConnectionsCounter()] - Reseted.");
@@ -1108,10 +1092,7 @@ namespace LegendaryTools.Networking
 #if DEBUG
                 Debug.Log("[Client][TcpProtocol:ProcessListenerPacket()] - Packet received.");
 #endif
-                if (OnClientPacketReceived != null)
-                {
-                    OnClientPacketReceived.Invoke(buffer, ip);
-                }
+                OnClientPacketReceived?.Invoke(buffer, ip);
             }
 #if DEBUG
             Debug.Log("[Client][TcpProtocol:ProcessListenerPacket()] - Processed. Status: " + Status);
@@ -1129,7 +1110,7 @@ namespace LegendaryTools.Networking
 #endif
             {
 #if DEBUG
-                Debug.Log("[Client] - Running ThreadProcessListenerPackets.");
+                //Debug.Log("[Client] - Running ThreadProcessListenerPackets.");
 #endif
                 bool received = false;
 
@@ -1140,7 +1121,6 @@ namespace LegendaryTools.Networking
                     //receive all packets
                     while (ReceivePacket(out buffer))
                     {
-#if MULTI_THREADED
                         try
                         {
                             received = ProcessListenerPacket(buffer, null);
@@ -1150,9 +1130,6 @@ namespace LegendaryTools.Networking
                             Debug.LogException(ex);
                         }
 
-#else
-                        received = ProcessListenerPacket(buffer, null);
-#endif
                         buffer.Recycle();
                     }
                 }
@@ -1285,7 +1262,7 @@ namespace LegendaryTools.Networking
                         }
                     }
 #if DEBUG
-                    Debug.Log("[Listener] - Running ThreadProcessClientPackets. Clients: " + clients.size);
+                    //Debug.Log("[Listener] - Running ThreadProcessClientPackets. Clients: " + clients.size);
 #endif
                     // Process player connections next
                     for (int i = 0; i < clients.size;)
@@ -1297,7 +1274,6 @@ namespace LegendaryTools.Networking
                         {
                             if (buffer.Size > 0)
                             {
-#if MULTI_THREADED
                                 try
                                 {
                                     if (ProcessClientPacket(buffer, client))
@@ -1311,10 +1287,6 @@ namespace LegendaryTools.Networking
                                     Error("(Listener ThreadFunction Process) " + ex.Message + "\n" + ex.StackTrace);
                                     RemoveClient(client);
                                 }
-#else
-                                if (ProcessClientPacket(buffer, client))
-							        received = true;
-#endif
                             }
 
                             buffer.Recycle();
@@ -1327,7 +1299,7 @@ namespace LegendaryTools.Networking
                             if (client.TimeoutTime > 0 && client.LastReceivedTime + client.TimeoutTime < time)
                             {
 #if DEBUG
-                                Debug.LogWarning("[TcpProtocol:StopListener()] - Client " + client.IpAddress +
+                                Debug.LogWarning("[TcpProtocol:StopListener()] - Client " + client.Address +
                                                  " has timed out");
 #endif
                                 RemoveClient(client);
@@ -1337,7 +1309,7 @@ namespace LegendaryTools.Networking
                         else if (client.LastReceivedTime + 2000 < time)
                         {
 #if DEBUG
-                            Debug.LogWarning("[TcpProtocol:StopListener()] - Client " + client.IpAddress +
+                            Debug.LogWarning("[TcpProtocol:StopListener()] - Client " + client.Address +
                                              " has timed out");
 #endif
                             RemoveClient(client);
@@ -1380,31 +1352,34 @@ namespace LegendaryTools.Networking
         /// <summary>
         /// Remove the specified player.
         /// </summary>
-        private void RemoveClient(TcpProtocol client)
+        private void RemoveClient(TcpProtocol client, bool notify = false)
         {
             if (client != null)
             {
-                client.Release();
+                OnTcpClientDisconnect?.Invoke(client);
+                client.Release(notify);
                 clients.Remove(client);
-
-                if (client.Id != 0)
+                if (clientsDictionary.ContainsKey(client.Id))
                 {
-                    if (clientsDictionary.Remove(client.Id))
-                    {
-                    }
-
-                    client.Id = 0;
+                    clientsDictionary.Remove(client.Id);
                 }
+            }
+        }
+
+        public void KickClient(int id)
+        {
+            if (clientsDictionary.TryGetValue(id, out TcpProtocol p))
+            {
+                RemoveClient(p, false);
             }
         }
 
         /// <summary>
         /// Retrieve a player by their ID.
         /// </summary>
-        private TcpProtocol GetClient(int id)
+        public TcpProtocol GetClient(int id)
         {
-            TcpProtocol p = null;
-            clientsDictionary.TryGetValue(id, out p);
+            clientsDictionary.TryGetValue(id, out TcpProtocol p);
             return p;
         }
 
@@ -1414,6 +1389,14 @@ namespace LegendaryTools.Networking
         public void SendToClient(int index, Buffer buffer)
         {
             clients[index].SendTcpPacket(buffer);
+        }
+        
+        /// <summary>
+        /// Send a buffer to player by ID
+        /// </summary>
+        public void SendToClientById(int clientId, Buffer buffer)
+        {
+            clientsDictionary[clientId].SendTcpPacket(buffer);
         }
 
         /// <summary>
@@ -1434,6 +1417,7 @@ namespace LegendaryTools.Networking
                     Debug.Log("[Listener][TcpProtocol:ProcessClientPacket()] - Client verified. Id: " + client.Id);
 #endif
                     clientsDictionary.Add(client.Id, client);
+                    OnTcpClientConnect?.Invoke(client);
                     return true;
                 }
 
@@ -1444,15 +1428,9 @@ namespace LegendaryTools.Networking
             {
                 Debug.Log("[Listener][TcpProtocol:ProcessClientPacket()] - Packet received.");
 
-                if (OnListenerPacketReceived != null)
-                {
-                    OnListenerPacketReceived.Invoke(buffer, client.EndPoint);
-                }
+                OnListenerPacketReceived?.Invoke(buffer, client.EndPoint);
             }
-
-#if DEBUG
-            Debug.Log("[Listener][TcpProtocol:ProcessClientPacket()] - Processed. Status: " + client.Status);
-#endif
+            
             return true;
         }
 

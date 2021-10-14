@@ -119,7 +119,7 @@ namespace LegendaryTools.Networking
                             }
                         }
 
-                        Debug.Log("[Tools:networkInterfaces] 1 localAddresses Amount: " + mAddresses.Count);
+                        //Debug.Log("[Tools:networkInterfaces] 1 localAddresses Amount: " + mAddresses.Count);
                     }
                     catch (Exception ex)
                     {
@@ -147,7 +147,7 @@ namespace LegendaryTools.Networking
                         }
                     }
 
-                    Debug.Log("[Tools:networkInterfaces] 2 localAddresses Amount: " + mAddresses.Count);
+                    //Debug.Log("[Tools:networkInterfaces] 2 localAddresses Amount: " + mAddresses.Count);
 #endif
                     // If everything else fails, simply use the loopback address
                     if (mAddresses.size == 0)
@@ -156,7 +156,7 @@ namespace LegendaryTools.Networking
                     }
                 }
 
-                Debug.Log("[Tools:networkInterfaces] 3 localAddresses Amount: " + mAddresses.Count);
+                //Debug.Log("[Tools:networkInterfaces] 3 localAddresses Amount: " + mAddresses.Count);
 
                 return mAddresses;
             }
@@ -824,7 +824,7 @@ namespace LegendaryTools.Networking
                     }
                 }
 
-                Debug.Log("[Tools:networkInterfaces] Amount: " + mInterfaces.Count);
+                //Debug.Log("[Tools:networkInterfaces] Amount: " + mInterfaces.Count);
 
                 return mInterfaces;
             }

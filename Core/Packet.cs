@@ -3,7 +3,7 @@ namespace LegendaryTools.Networking
     /// <summary>
     /// Clients send requests to the server and receive responses back. Forwarded calls arrive as-is.
     /// </summary>
-    public enum Packet
+    public enum Packet : byte
     {
         /// <summary>
         /// Empty packet. Can be used to keep the connection alive.
@@ -37,5 +37,16 @@ namespace LegendaryTools.Networking
         /// int64: Server time in milliseconds (only if the protocol ID matched).
         /// </summary>
         ResponseID,
+        
+        KeepAlive,
+        
+        CommandMessage,
+        RequestMessage,
+        
+        AddressableInstantiate,
+        ResourcesInstantiate,
+        Destroy,
+        SyncVar,
+        RPC,
     }
 }
