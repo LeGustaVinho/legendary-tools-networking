@@ -2,10 +2,12 @@ using System.IO;
 
 namespace LegendaryTools.Networking
 {
-    public abstract class NetworkMessage<T>
-        where T : NetworkMessage<T>, new()
+    public abstract class NetworkMessage
     {
-        public Packet PacketType { get; set; }
+        public const int PACKET_OFFSET = Buffer.SIZE_OFFSET + Buffer.SIZEOF_SIZE;
+        public const int SIZEOF_PACKET = sizeof(byte);
+        
+        public Packet PacketType; //1
 
         protected virtual Buffer BeginSerialize()
         {
@@ -13,7 +15,7 @@ namespace LegendaryTools.Networking
             return buffer;
         }
 
-        public abstract void SerializeBody(Buffer buffer);
+        protected abstract void SerializeBody(Buffer buffer);
 
         public virtual Buffer Serialize()
         {
@@ -23,36 +25,34 @@ namespace LegendaryTools.Networking
             return buffer;
         }
 
-        protected virtual T BeginDeserialize(Buffer buffer)
+        protected virtual void BeginDeserialize(Buffer buffer)
         {
             buffer.BeginReading();
-            T instance = new T {PacketType = (Packet) buffer.ReadByte()};
-            return instance;
+            PacketType = (Packet) buffer.ReadByte();
         }
         
-        public abstract void DeserializeBody(Buffer buffer, T instance);
+        protected abstract void DeserializeBody(Buffer buffer);
 
-        public T Deserialize(Buffer buffer)
+        public void Deserialize(Buffer buffer)
         {
-            T instance = BeginDeserialize(buffer);
-            DeserializeBody(buffer, instance);
+            BeginDeserialize(buffer);
+            DeserializeBody(buffer);
             buffer.Recycle();
-            return instance;
         }
     }
 
-    public class StringNetworkMessage : NetworkMessage<StringNetworkMessage>
+    public class StringNetworkMessage : NetworkMessage
     {
         public string Message;
 
-        public override void SerializeBody(Buffer buffer)
+        protected override void SerializeBody(Buffer buffer)
         {
             buffer.Write(Message);
         }
 
-        public override void DeserializeBody(Buffer buffer, StringNetworkMessage instance)
+        protected override void DeserializeBody(Buffer buffer)
         {
-            instance.Message = buffer.ReadString();
+            Message = buffer.ReadString();
         }
     }
 }

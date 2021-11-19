@@ -14,12 +14,14 @@ public class ServerBehaviour : MonoBehaviour
 
     public void Start()
     {
+        Server.OnMessageReceived += OnMessageReceived;
+        
         if (AutoStart)
         {
             Server.Start(UdpListenPort, TcpListenPort, ClientUdpPort);
         }
     }
-    
+
     public void Update()
     {
         Server.Update();
@@ -41,6 +43,41 @@ public class ServerBehaviour : MonoBehaviour
     
     public void OnDestroy()
     {
+        Server.OnMessageReceived -= OnMessageReceived;
         Server.Stop();
+    }
+    
+    void OnMessageReceived(Buffer buffer, Player player)
+    {
+        Packet packet = buffer.PeekPacket();
+
+        switch (packet)
+        {
+            case Packet.RequestMessage:
+            {
+                ushort operationId = buffer.PeekUInt16(NetworkMessageOperation.OPERATION_ID_OFFSET);
+
+                switch (operationId)
+                {
+                    case 1:
+                    {
+                        EmptyRequest request = buffer.Deserialize<EmptyRequest>();
+                        
+                        EmptyResponse response = new EmptyResponse()
+                        {
+                            PacketType = Packet.RequestMessage,
+                            OperationId = 2,
+                            ResponseId = request.RequestId
+                        };
+                        
+                        Server.SendMessage(response, player, true);
+                        
+                        break;
+                    }
+                }
+                
+                break;
+            }
+        }
     }
 }

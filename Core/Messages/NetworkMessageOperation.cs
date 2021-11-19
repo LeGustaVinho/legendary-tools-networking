@@ -1,9 +1,11 @@
 namespace LegendaryTools.Networking
 {
-    public abstract class NetworkMessageOperation<T> : NetworkMessage<T>
-        where T : NetworkMessageOperation<T>, new()
+    public abstract class NetworkMessageOperation : NetworkMessage
     {
-        public ushort OperationId;
+        public const int OPERATION_ID_OFFSET = PACKET_OFFSET + SIZEOF_PACKET;
+        public const int SIZEOF_OPERATION_ID = sizeof(ushort);
+        
+        public ushort OperationId;  //2
         protected override Buffer BeginSerialize()
         {
             Buffer buffer = base.BeginSerialize();
@@ -11,11 +13,21 @@ namespace LegendaryTools.Networking
             return buffer;
         }
         
-        protected override T BeginDeserialize(Buffer buffer)
+        protected override void BeginDeserialize(Buffer buffer)
         {
-            T instance = base.BeginDeserialize(buffer);
-            instance.OperationId = buffer.ReadUInt16();
-            return instance;
+            base.BeginDeserialize(buffer);
+            OperationId = buffer.ReadUInt16();
+        }
+    }
+
+    public class EmptyCommand : NetworkMessageOperation
+    {
+        protected override void SerializeBody(Buffer buffer)
+        {
+        }
+
+        protected override void DeserializeBody(Buffer buffer)
+        {
         }
     }
 }

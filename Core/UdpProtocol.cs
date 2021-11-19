@@ -237,12 +237,12 @@ namespace LegendaryTools.Networking
                 Error(new IPEndPoint(NetworkUtility.localAddress, 0), ex.Message);
             }
 
-            if (bytes > 4)
+            if (bytes > Buffer.SIZEOF_SIZE)
             {
                 // This datagram is now ready to be processed
                 Buffer buffer = Buffer.Create();
                 buffer.BeginWriting(false).Write(temp, 0, bytes);
-                buffer.BeginReading(4); //The first 4 bytes is the buffer size, so move the cursor 4 bytes forward to make it easier to read and go straight to the data
+                buffer.BeginReading(Buffer.SIZEOF_SIZE); //The first 4 bytes is the buffer size, so move the cursor 4 bytes forward to make it easier to read and go straight to the data
 
                 // The 'endPoint', gets reassigned rather than updated.
                 Datagram dg = new Datagram {buffer = buffer, ip = (IPEndPoint) endPoint};
@@ -480,7 +480,7 @@ namespace LegendaryTools.Networking
         {
             Buffer buffer = Buffer.Create();
             buffer.BeginPacket(Packet.Error).Write(error);
-            buffer.EndTcpPacketWithOffset(4);
+            buffer.EndTcpPacketWithOffset(Buffer.SIZEOF_SIZE);
 
             Datagram dg = new Datagram {buffer = buffer, ip = ip};
             lock (inQueue)

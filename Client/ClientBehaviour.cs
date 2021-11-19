@@ -35,6 +35,23 @@ public class ClientBehaviour : MonoBehaviour
         {
             Client.SendKeepAlive();
         }
+
+        if (Input.GetKeyUp(KeyCode.R))
+        {
+            EmptyRequest request = new EmptyRequest()
+            {
+                PacketType = Packet.RequestMessage,
+                OperationId = 1,
+            };
+            
+            Client.SendRequest(request, OnResponse);
+        }
+    }
+
+    void OnResponse(Buffer responseBuffer)
+    {
+        EmptyResponse response = responseBuffer.Deserialize<EmptyResponse>();
+        Debug.Log(response.ResponseId);
     }
 
     public void OnDestroy()

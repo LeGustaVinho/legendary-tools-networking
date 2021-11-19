@@ -1,26 +1,26 @@
 namespace LegendaryTools.Networking
 {
-    public abstract class NetworkMessageRequest : NetworkMessageOperation
+    public abstract class NetworkMessageResponse : NetworkMessageOperation
     {
-        public const int REQUEST_ID_OFFSET = OPERATION_ID_OFFSET + SIZEOF_OPERATION_ID;
-        public const int SIZEOF_REQUEST_ID = sizeof(byte);
+        public const int RESPONSE_ID_OFFSET = OPERATION_ID_OFFSET + SIZEOF_OPERATION_ID;
+        public const int SIZEOF_RESPONSE_ID = sizeof(byte);
         
-        internal byte RequestId; //3
+        internal byte ResponseId; //3
         protected override Buffer BeginSerialize()
         {
             Buffer buffer = base.BeginSerialize();
-            buffer.Write(RequestId);
+            buffer.Write(ResponseId);
             return buffer;
         }
         
         protected override void BeginDeserialize(Buffer buffer)
         {
             base.BeginDeserialize(buffer);
-            RequestId = buffer.ReadByte();
+            ResponseId = buffer.ReadByte();
         }
     }
 
-    public class EmptyRequest : NetworkMessageRequest
+    public class EmptyResponse : NetworkMessageResponse
     {
         protected override void SerializeBody(Buffer buffer)
         {

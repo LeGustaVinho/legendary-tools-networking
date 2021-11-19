@@ -22,13 +22,35 @@ namespace LegendaryTools.Networking
         /// </summary>
         public string Name = "Guest";
 
-        public TcpProtocol TcpProtocol { get; private set; }
+        public ushort Layer;
+
+        public Client Client { get; private set; }
+        public Server Server { get; private set; }
+
+        public TcpProtocol TcpProtocol =>
+            Server != null ? Server.TcpProtocol : Client?.TcpProtocol;
         public IPEndPoint UdpAddress { get; private set; }
         
-        public Player(TcpProtocol tcpProtocol, IPEndPoint udpAddress)
+        public Player(Client client)
         {
-            this.TcpProtocol = tcpProtocol;
-            this.UdpAddress = udpAddress;
+            Client = client;
+        }
+        
+        public Player(Server server)
+        {
+            Server = server;
+        }
+        
+        public Player(Server server, IPEndPoint udpAddress)
+        {
+            Server = server;
+            UdpAddress = udpAddress;
+        }
+
+        public void ChangeName(string newName)
+        {
+            Server?.SendMessage(new NetworkMessagePlayerName(newName), this, true);
+            Client?.SendMessage(new NetworkMessagePlayerName(newName), true);
         }
     }
 }

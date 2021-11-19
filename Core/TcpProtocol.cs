@@ -1,5 +1,3 @@
-#define DEBUG
-
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -15,6 +13,7 @@ namespace LegendaryTools.Networking
     /// </summary>
     public delegate void OnTcpPacketReceivedEventHandler(Buffer buffer, IPEndPoint source);
     public delegate void OnTcpClientChangeEventHandler(TcpProtocol tcpProtocol);
+    public delegate void OnTcpSocketCloseEventHandler();
 
     public class TcpProtocol
     {
@@ -150,6 +149,7 @@ namespace LegendaryTools.Networking
         public event OnTcpPacketReceivedEventHandler OnListenerPacketReceived;
         public event OnTcpClientChangeEventHandler OnTcpClientConnect;
         public event OnTcpClientChangeEventHandler OnTcpClientDisconnect;
+        public event OnTcpSocketCloseEventHandler OnTcpSocketClose;
 
         /// <summary>
         /// Whether the server is currently actively serving players.
@@ -459,21 +459,6 @@ namespace LegendaryTools.Networking
         {
             if (socket != null)
             {
-                if (notify)
-                {
-#if DEBUG
-                    Debug.Log("[Client][TcpProtocol:Close(" + notify + ") -> Sending disconnect message.");
-#endif
-
-                    Buffer buffer = Buffer.Create();
-                    buffer.BeginPacket(Packet.Disconnect);
-                    buffer.EndTcpPacketWithOffset(4);
-                    lock (inQueue)
-                    {
-                        inQueue.Enqueue(buffer);
-                    }
-                }
-                
                 try
                 {
                     if (socket.Connected)
@@ -508,6 +493,11 @@ namespace LegendaryTools.Networking
             {
                 clientThread.Abort();
                 clientThread = null;
+            }
+
+            if (notify)
+            {
+                OnTcpSocketClose?.Invoke();
             }
         }
 
@@ -849,7 +839,7 @@ namespace LegendaryTools.Networking
 #endif
             }
 
-            for (int available = receiveBuffer.Size - offset; available >= 4;)
+            for (int available = receiveBuffer.Size - offset; available >= Buffer.SIZEOF_SIZE;)
             {
                 // Figure out the expected size of the packet
                 if (expected == 0)
@@ -867,13 +857,13 @@ namespace LegendaryTools.Networking
                 }
 
                 // The first 4 bytes of any packet always contain the number of bytes in that packet
-                available -= 4;
+                available -= Buffer.SIZEOF_SIZE;
 
                 // If the entire packet is present
                 if (available == expected)
                 {
                     // Reset the position to the beginning of the packet
-                    receiveBuffer.BeginReading(offset + 4);
+                    receiveBuffer.BeginReading(offset + Buffer.SIZEOF_SIZE);
 
                     // This packet is now ready to be processed
                     lock (inQueue)
@@ -892,7 +882,7 @@ namespace LegendaryTools.Networking
                 if (available > expected)
                 {
                     // There is more than one packet. Extract this packet fully.
-                    int realSize = expected + 4;
+                    int realSize = expected + Buffer.SIZEOF_SIZE;
 #if DEBUG
                     Debug.Log("[Client][TcpProtocol:ProcessBuffer(" + bytes +
                               ") -> There is more than one packet. Extract this packet fully. RealSize = " + realSize +
@@ -903,7 +893,7 @@ namespace LegendaryTools.Networking
                     // Extract the packet and move past its size component
                     BinaryWriter bw = temp.BeginWriting(false);
                     bw.Write(receiveBuffer.DataBuffer, offset, realSize);
-                    temp.BeginReading(4);
+                    temp.BeginReading(Buffer.SIZEOF_SIZE);
 
                     // This packet is now ready to be processed
                     lock (inQueue)
@@ -943,7 +933,7 @@ namespace LegendaryTools.Networking
         private void Error(Buffer buffer, string error)
         {
             buffer.BeginPacket(Packet.Error).Write(error);
-            buffer.EndTcpPacketWithOffset(4);
+            buffer.EndTcpPacketWithOffset(Buffer.SIZEOF_SIZE);
             lock (inQueue)
             {
                 inQueue.Enqueue(buffer);
@@ -1370,7 +1360,7 @@ namespace LegendaryTools.Networking
         {
             if (clientsDictionary.TryGetValue(id, out TcpProtocol p))
             {
-                RemoveClient(p, false);
+                RemoveClient(p, true);
             }
         }
 

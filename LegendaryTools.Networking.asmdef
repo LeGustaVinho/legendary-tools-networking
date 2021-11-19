@@ -1,3 +1,16 @@
 {
-	"name": "LegendaryTools.Networking"
+    "name": "LegendaryTools.Networking",
+    "rootNamespace": "",
+    "references": [
+        "GUID:2247f345c1389cb428906dc038800b93"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
 }

@@ -40,13 +40,19 @@ namespace LegendaryTools.Networking
         
         KeepAlive,
         
+        PlayerLayer,
+        PlayerName,
+        
         CommandMessage,
         RequestMessage,
+        ResponseMessage,
         
         AddressableInstantiate,
         ResourcesInstantiate,
         Destroy,
         SyncVar,
         RPC,
+        LoadSceneSingle,
+        LoadSceneAdditive,
     }
 }

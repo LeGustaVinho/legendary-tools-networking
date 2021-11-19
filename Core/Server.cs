@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Net;
+using UnityEngine;
 
 namespace LegendaryTools.Networking
 {
@@ -9,11 +10,12 @@ namespace LegendaryTools.Networking
         public event Action<Player> OnPlayerConnected;
         public event Action<Player> OnPlayerDisconnected;
         public event Action OnServerInitialized;
+        public event Action<Buffer, Player> OnMessageReceived;
         
         public List<Player> PlayerList => new List<Player>(playerList.ToArray());
         
-        protected readonly UdpProtocol udpProtocol = new UdpProtocol("Server");
-        protected readonly TcpProtocol tcpProtocol = new TcpProtocol();
+        internal protected readonly UdpProtocol UdpProtocol = new UdpProtocol("Server");
+        internal protected readonly TcpProtocol TcpProtocol = new TcpProtocol();
         
         protected readonly List<Player> playerList = new List<Player>();
         protected Dictionary<int,Player> playerTableById = new Dictionary<int,Player>();
@@ -23,52 +25,52 @@ namespace LegendaryTools.Networking
 
         public Server()
         {
-            udpProtocol.OnPacketReceived += OnUdpPacketReceived;
-            tcpProtocol.OnListenerPacketReceived += OnListenerPacketReceived;
-            tcpProtocol.OnTcpClientConnect += OnTcpClientConnect;
-            tcpProtocol.OnTcpClientDisconnect += OnTcpClientDisconnect;
+            UdpProtocol.OnPacketReceived += OnUdpPacketReceived;
+            TcpProtocol.OnListenerPacketReceived += OnListenerPacketReceived;
+            TcpProtocol.OnTcpClientConnect += OnTcpClientConnect;
+            TcpProtocol.OnTcpClientDisconnect += OnTcpClientDisconnect;
         }
 
         ~Server()
         {
-            udpProtocol.OnPacketReceived -= OnUdpPacketReceived;
-            tcpProtocol.OnListenerPacketReceived -= OnListenerPacketReceived;
-            tcpProtocol.OnTcpClientConnect -= OnTcpClientConnect;
-            tcpProtocol.OnTcpClientDisconnect -= OnTcpClientDisconnect;
+            UdpProtocol.OnPacketReceived -= OnUdpPacketReceived;
+            TcpProtocol.OnListenerPacketReceived -= OnListenerPacketReceived;
+            TcpProtocol.OnTcpClientConnect -= OnTcpClientConnect;
+            TcpProtocol.OnTcpClientDisconnect -= OnTcpClientDisconnect;
         }
 
         public void Start(int udpPort, int tcpPort, int clientUdpPort)
         {
             this.clientUdpPort = clientUdpPort;
-            bool udpStarted = udpProtocol.Start(udpPort);
-            bool tcpStarted = tcpProtocol.StartListener(tcpPort);
+            bool udpStarted = UdpProtocol.Start(udpPort);
+            bool tcpStarted = TcpProtocol.StartListener(tcpPort);
 
             if (udpStarted && tcpStarted)
             {
-                OnServerInitialized?.Invoke();    
+                OnServerInitialized?.Invoke();
+                OnServerInitialize();
             }
         }
 
         public void Stop()
         {
-            udpProtocol.Stop();
-            tcpProtocol.StopListener();
-            tcpProtocol.Disconnect();
+            UdpProtocol.Stop();
+            TcpProtocol.StopListener();
+            TcpProtocol.Disconnect();
         }
         
         public void SendUnreliable(int clientId, Buffer buffer)
         {
-            TcpProtocol tcpClient = tcpProtocol.GetClient(clientId);
-            udpProtocol.Send(buffer, new IPEndPoint(IPAddress.Parse(tcpClient.Address), clientUdpPort));
+            TcpProtocol tcpClient = TcpProtocol.GetClient(clientId);
+            UdpProtocol.Send(buffer, new IPEndPoint(IPAddress.Parse(tcpClient.Address), clientUdpPort));
         }
 
         public void SendReliable(int clientId, Buffer buffer)
         {
-            tcpProtocol.SendToClientById(clientId, buffer);
+            TcpProtocol.SendToClientById(clientId, buffer);
         }
 
-        public void SendMessage<T>(NetworkMessage<T> message, Player player, bool reliable)
-            where T : NetworkMessage<T>, new()
+        public void SendMessage(NetworkMessage message, Player player, bool reliable)
         {
             if (reliable)
             {
@@ -80,8 +82,7 @@ namespace LegendaryTools.Networking
             }
         }
 
-        public void BroadcastMessage<T>(NetworkMessage<T> message, bool reliable)
-            where T : NetworkMessage<T>, new()
+        public void BroadcastMessage(NetworkMessage message, bool reliable)
         {
             foreach (Player player in playerList)
             {
@@ -91,27 +92,39 @@ namespace LegendaryTools.Networking
 
         public void KickPlayer(Player player)
         {
-            tcpProtocol.KickClient(player.Id);
+            TcpProtocol.KickClient(player.Id);
         }
 
         public void Update()
         {
-            udpProtocol.Update();
-            tcpProtocol.UpdateListener();
-            tcpProtocol.UpdateClient();
+            UdpProtocol.Update();
+            TcpProtocol.UpdateListener();
+            TcpProtocol.UpdateClient();
         }
 
-        protected virtual void OnUdpPacketReceived(Buffer buffer, IPEndPoint source)
+        protected virtual void OnServerInitialize()
         {
-        }
-
-        protected virtual void OnListenerPacketReceived(Buffer buffer, IPEndPoint source)
-        {
+            
         }
         
-        protected virtual void OnTcpClientConnect(TcpProtocol tcpProtocol)
+        protected virtual void OnMessageReceive(Buffer buffer, Player player)
         {
-            Player newPlayer = new Player(tcpProtocol,
+            
+        }
+
+        protected virtual void OnPlayerConnect(Player player)
+        {
+            
+        }
+        
+        protected virtual void OnPlayerDisconnect(Player player)
+        {
+            
+        }
+        
+        private void OnTcpClientConnect(TcpProtocol tcpProtocol)
+        {
+            Player newPlayer = new Player(this,
                 new IPEndPoint(IPAddress.Parse(tcpProtocol.Ip), clientUdpPort));
             
             playerList.Add(newPlayer);
@@ -119,9 +132,10 @@ namespace LegendaryTools.Networking
             playerTableByEndPoint.Add(tcpProtocol.EndPoint, newPlayer);
             
             OnPlayerConnected?.Invoke(newPlayer);
+            OnPlayerConnect(newPlayer);
         }
 
-        protected virtual void OnTcpClientDisconnect(TcpProtocol tcpProtocol)
+        private void OnTcpClientDisconnect(TcpProtocol tcpProtocol)
         {
             Player found = playerList.Find(item => item.TcpProtocol == tcpProtocol);
             if (found != null)
@@ -131,7 +145,41 @@ namespace LegendaryTools.Networking
                 playerTableByEndPoint.Remove(found.TcpProtocol.EndPoint);
                 
                 OnPlayerDisconnected?.Invoke(found);
+                OnPlayerDisconnect(found);
             }
+        }
+        
+        private void OnUdpPacketReceived(Buffer buffer, IPEndPoint source)
+        {
+            if (playerTableByEndPoint.TryGetValue(source, out Player player))
+            {
+                OnMessageReceived?.Invoke(buffer, player);
+                OnMessageReceive(buffer, player);
+            }
+        }
+
+        private void OnListenerPacketReceived(Buffer buffer, IPEndPoint source)
+        {
+            Packet packetType = buffer.PeekPacket();
+
+            if (!playerTableByEndPoint.TryGetValue(source, out Player player))
+            {
+                Debug.LogError("Player not found");
+                return;
+            }
+
+            switch (packetType)
+            {
+                case Packet.PlayerLayer:
+                {
+                    player.Name = buffer.Deserialize<NetworkMessagePlayerName>().Name;
+                    break;
+                }
+            }
+            
+
+            OnMessageReceived?.Invoke(buffer, player);
+            OnMessageReceive(buffer, player);
         }
     }
 }

@@ -9,7 +9,10 @@ namespace LegendaryTools.Networking
     /// </summary>
     public class Buffer
     {
-        private static ListLessGarb<Buffer> pool = new ListLessGarb<Buffer>();
+        public const int SIZE_OFFSET = 0;
+        public const int SIZEOF_SIZE = sizeof(int);
+        
+        private static readonly ListLessGarb<Buffer> pool = new ListLessGarb<Buffer>();
 
         private volatile int counter;
         private volatile bool inPool;
@@ -329,18 +332,19 @@ namespace LegendaryTools.Networking
             return binaryReader;
         }
 
+        public Packet PeekPacket()
+        {
+            return (Packet) PeekByte(SIZEOF_SIZE);
+        }
+        
         /// <summary>
         /// Peek at the first byte at the specified offset.
         /// </summary>
-        public int PeekByte(int offset)
+        public byte PeekByte(int offset)
         {
             long pos = stream.Position;
-            if (offset < 0 || offset + 1 > pos)
-            {
-                return -1;
-            }
             stream.Seek(offset, SeekOrigin.Begin);
-            int val = binaryReader.ReadByte();
+            byte val = binaryReader.ReadByte();
             stream.Seek(pos, SeekOrigin.Begin);
             return val;
         }
@@ -351,12 +355,20 @@ namespace LegendaryTools.Networking
         public int PeekInt(int offset)
         {
             long pos = stream.Position;
-            if (offset < 0 || offset + 4 > pos)
-            {
-                return -1;
-            }
             stream.Seek(offset, SeekOrigin.Begin);
             int val = binaryReader.ReadInt32();
+            stream.Seek(pos, SeekOrigin.Begin);
+            return val;
+        }
+        
+        /// <summary>
+        /// Peek at the first integer at the specified offset.
+        /// </summary>
+        public ushort PeekUInt16(int offset)
+        {
+            long pos = stream.Position;
+            stream.Seek(offset, SeekOrigin.Begin);
+            ushort val = binaryReader.ReadUInt16();
             stream.Seek(pos, SeekOrigin.Begin);
             return val;
         }
@@ -367,10 +379,6 @@ namespace LegendaryTools.Networking
         public byte[] PeekBytes(int offset, int length)
         {
             long pos = stream.Position;
-            if (offset < 0 || offset + length > pos)
-            {
-                return null;
-            }
             stream.Seek(offset, SeekOrigin.Begin);
             byte[] bytes = binaryReader.ReadBytes(length);
             stream.Seek(pos, SeekOrigin.Begin);
@@ -416,7 +424,7 @@ namespace LegendaryTools.Networking
             {
                 size = Position;
                 stream.Seek(0, SeekOrigin.Begin);
-                binaryWriter.Write(size - 4);
+                binaryWriter.Write(size - SIZEOF_SIZE);
                 stream.Seek(0, SeekOrigin.Begin);
                 isWriting = false;
             }
@@ -432,7 +440,7 @@ namespace LegendaryTools.Networking
             {
                 size = Position;
                 stream.Seek(startOffset, SeekOrigin.Begin);
-                binaryWriter.Write(size - 4 - startOffset);
+                binaryWriter.Write(size - SIZEOF_SIZE - startOffset);
                 stream.Seek(0, SeekOrigin.Begin);
                 isWriting = false;
             }
@@ -448,13 +456,21 @@ namespace LegendaryTools.Networking
             {
                 size = Position;
                 stream.Seek(0, SeekOrigin.Begin);
-                binaryWriter.Write(size - 4);
+                binaryWriter.Write(size - SIZEOF_SIZE);
                 stream.Seek(offset, SeekOrigin.Begin);
                 isWriting = false;
             }
             return size;
         }
 
+        public T Deserialize<T>() where T : NetworkMessage, new()
+        {
+            T instance = new T();
+            instance.Deserialize(this);
+            Recycle();
+            return instance;
+        }
+        
         #region Writer
         public void Write(long value)
         {
