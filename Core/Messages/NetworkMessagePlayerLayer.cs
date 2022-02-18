@@ -4,6 +4,16 @@ namespace LegendaryTools.Networking
     {
         public ushort Layer;
         
+        public NetworkMessagePlayerLayer()
+        {
+            PacketType = Packet.PlayerLayer;
+        }
+
+        public NetworkMessagePlayerLayer(ushort layer)
+        {
+            Layer = layer;
+        }
+        
         protected override void SerializeBody(Buffer buffer)
         {
             buffer.Write(Layer);

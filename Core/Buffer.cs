@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
+using Object = System.Object;
 
 namespace LegendaryTools.Networking
 {
@@ -463,11 +464,10 @@ namespace LegendaryTools.Networking
             return size;
         }
 
-        public T Deserialize<T>() where T : NetworkMessage, new()
+        public T Deserialize<T>(bool autoRecycle = true) where T : NetworkMessage, new()
         {
             T instance = new T();
-            instance.Deserialize(this);
-            Recycle();
+            instance.Deserialize(this, autoRecycle);
             return instance;
         }
         
@@ -867,6 +867,51 @@ namespace LegendaryTools.Networking
                 }
             }
         }
+
+        public void Write(Object value)
+        {
+            switch (value)
+            {
+                case bool convertedValue : Write(convertedValue); break;
+                case bool[] convertedValue : Write(convertedValue); break;
+                case byte convertedValue : Write(convertedValue); break;
+                case byte[] convertedValue : Write(convertedValue); break;
+                case sbyte convertedValue : Write(convertedValue); break;
+                case sbyte[] convertedValue : Write(convertedValue); break;
+                case short convertedValue : Write(convertedValue); break;
+                case short[] convertedValue : Write(convertedValue); break;
+                case ushort convertedValue : Write(convertedValue); break;
+                case ushort[] convertedValue : Write(convertedValue); break;
+                case int convertedValue : Write(convertedValue); break;
+                case int[] convertedValue : Write(convertedValue); break;
+                case uint convertedValue : Write(convertedValue); break;
+                case uint[] convertedValue : Write(convertedValue); break;
+                case long convertedValue : Write(convertedValue); break;
+                case long[] convertedValue : Write(convertedValue); break;
+                case ulong convertedValue : Write(convertedValue); break;
+                case ulong[] convertedValue : Write(convertedValue); break;
+                case float convertedValue : Write(convertedValue); break;
+                case float[] convertedValue : Write(convertedValue); break;
+                case double convertedValue : Write(convertedValue); break;
+                case double[] convertedValue : Write(convertedValue); break;
+                case char convertedValue : Write(convertedValue); break;
+                case char[] convertedValue : Write(convertedValue); break;
+                case string convertedValue : Write(convertedValue); break;
+                case string[] convertedValue : Write(convertedValue); break;
+                case Vector2 convertedValue : Write(convertedValue); break;
+                case Vector2[] convertedValue : Write(convertedValue); break;
+                case Vector3 convertedValue : Write(convertedValue); break;
+                case Vector3[] convertedValue : Write(convertedValue); break;
+                case Quaternion convertedValue : Write(convertedValue); break;
+                case Quaternion[] convertedValue : Write(convertedValue); break;
+                case Color convertedValue : Write(convertedValue); break;
+                case Color[] convertedValue : Write(convertedValue); break;
+                case Color32 convertedValue : Write(convertedValue); break;
+                case Color32[] convertedValue : Write(convertedValue); break;
+                case Rect convertedValue : Write(convertedValue); break;
+                case Rect[] convertedValue : Write(convertedValue); break;
+            }
+        }
         
         #endregion
 
@@ -923,7 +968,7 @@ namespace LegendaryTools.Networking
             return result;
         }
         
-        public uint ReadUInt32(uint value)
+        public uint ReadUInt32()
         {
             return binaryReader.ReadUInt32();
         }
@@ -1016,7 +1061,7 @@ namespace LegendaryTools.Networking
             return binaryReader.ReadChar();
         }
         
-        public char[] ReadChars(int count)
+        public char[] ReadChars()
         {
             int length = binaryReader.ReadInt32();
             char[] result = new char[length];

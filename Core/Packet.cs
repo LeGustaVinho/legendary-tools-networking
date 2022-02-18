@@ -49,10 +49,26 @@ namespace LegendaryTools.Networking
         
         AddressableInstantiate,
         ResourcesInstantiate,
-        Destroy,
+        CustomInstantiate,
+
+        Construct, //Create a C# pure class
+        DisposeAndDestroy, //Dispose a C# pure class
+        
         SyncVar,
         RPC,
+        
+        AddressableLoadSceneSingle,
+        AddressableLoadSceneAdditive,
+        AddressableLoadSceneSingleNoActivation,
+        AddressableLoadSceneAdditiveNoActivation,
+        AddressableUnloadScene,
+        AddressableActivateScene,
+        
         LoadSceneSingle,
         LoadSceneAdditive,
+        LoadSceneSingleNoActivation,
+        LoadSceneAdditiveNoActivation,
+        UnloadScene,
+        ActivateScene,
     }
 }

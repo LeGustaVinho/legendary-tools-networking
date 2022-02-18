@@ -20,9 +20,38 @@ namespace LegendaryTools.Networking
         /// <summary>
         /// All players have a name that they chose for themselves.
         /// </summary>
-        public string Name = "Guest";
+        private string name = "Guest";
 
-        public ushort Layer;
+        public string Name
+        {
+            set
+            {
+                if (Server != null)
+                {
+                    Server.SendMessage(new NetworkMessagePlayerName(value), this, true);
+                    name = value;
+                }
+
+                Client?.SendMessage(new NetworkMessagePlayerName(value), true);
+            }
+            get => name;
+        }
+
+        private ushort layer;
+
+        public ushort Layer
+        {
+            set
+            {
+                if (Server != null)
+                {
+                    Server.SendMessage(new NetworkMessagePlayerLayer(value), this, true);
+                    Layer = value;
+                }
+                
+            }
+            get => layer;
+        }
 
         public Client Client { get; private set; }
         public Server Server { get; private set; }
@@ -45,12 +74,6 @@ namespace LegendaryTools.Networking
         {
             Server = server;
             UdpAddress = udpAddress;
-        }
-
-        public void ChangeName(string newName)
-        {
-            Server?.SendMessage(new NetworkMessagePlayerName(newName), this, true);
-            Client?.SendMessage(new NetworkMessagePlayerName(newName), true);
         }
     }
 }

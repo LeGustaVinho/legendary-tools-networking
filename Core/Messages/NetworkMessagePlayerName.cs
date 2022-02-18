@@ -6,6 +6,7 @@ namespace LegendaryTools.Networking
 
         public NetworkMessagePlayerName()
         {
+            PacketType = Packet.PlayerName;
         }
 
         public NetworkMessagePlayerName(string name)

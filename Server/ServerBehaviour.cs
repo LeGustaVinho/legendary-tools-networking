@@ -1,6 +1,20 @@
+using System;
+using System.Collections.Generic;
 using System.IO;
 using LegendaryTools.Networking;
 using UnityEngine;
+using Buffer = LegendaryTools.Networking.Buffer;
+
+[Serializable]
+public class Character : NetworkObject
+{
+    public string Name;
+    
+    public override void OnInitialize(Buffer buffer)
+    {
+        Name = buffer.ReadString();
+    }
+}
 
 public class ServerBehaviour : MonoBehaviour
 {
@@ -11,6 +25,8 @@ public class ServerBehaviour : MonoBehaviour
     public int ClientUdpPort;
 
     public bool AutoStart;
+
+    public List<Character> Character = new List<Character>();
 
     public void Start()
     {
@@ -39,8 +55,13 @@ public class ServerBehaviour : MonoBehaviour
             
             Server.SendReliable(Server.PlayerList[0].Id, buffer);
         }
+
+        if (Input.GetKeyUp(KeyCode.J))
+        {
+            Character.Add(Server.Construct<Character>(0,"Gustavo"));
+        }
     }
-    
+
     public void OnDestroy()
     {
         Server.OnMessageReceived -= OnMessageReceived;

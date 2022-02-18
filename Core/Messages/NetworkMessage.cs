@@ -33,11 +33,15 @@ namespace LegendaryTools.Networking
         
         protected abstract void DeserializeBody(Buffer buffer);
 
-        public void Deserialize(Buffer buffer)
+        public void Deserialize(Buffer buffer, bool autoRecycle = true)
         {
             BeginDeserialize(buffer);
             DeserializeBody(buffer);
-            buffer.Recycle();
+
+            if (autoRecycle)
+            {
+                buffer.Recycle();
+            }
         }
     }
 
